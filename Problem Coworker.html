@@ -1,0 +1,785 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Problem Coworker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a service-desk console. Queue | ticket + chat with the coworker | lab terminal on their PC. Stacks on phones. */
+:root {
+  --bg: #e9edf1;
+  --surface: #ffffff;
+  --surface-2: #f4f6f8;
+  --ink: #16202a;
+  --muted: #586675;
+  --line: #d3dae1;
+  --accent: #0d6b68;
+  --accent-soft: #d8eeec;
+  --amber: #a85f00;
+  --amber-soft: #fbecd6;
+  --good: #1d7a3e;
+  --good-soft: #dcf1e2;
+  --bad: #b3261e;
+  --bad-soft: #fbe0de;
+  --term-bg: #0e1720;
+  --term-ink: #cfe0d8;
+  --term-dim: #7f95a3;
+  --term-prompt: #79d0b6;
+  --term-err: #ff9b8f;
+  --bubble-them: #eef2f5;
+  --font-display: "Familjen Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1318; --surface: #161d24; --surface-2: #1b232b; --ink: #e2e8ee; --muted: #94a2af;
+    --line: #2a3540; --accent: #4cc2b5; --accent-soft: #163a38; --amber: #f0a63d; --amber-soft: #3b2a12;
+    --good: #6fd08f; --good-soft: #17331f; --bad: #ff8a80; --bad-soft: #3d1a18;
+    --term-bg: #0a1016; --term-ink: #cfe0d8; --term-dim: #71879a; --term-prompt: #79d0b6; --term-err: #ff9b8f;
+    --bubble-them: #1f2932; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1318; --surface: #161d24; --surface-2: #1b232b; --ink: #e2e8ee; --muted: #94a2af;
+  --line: #2a3540; --accent: #4cc2b5; --accent-soft: #163a38; --amber: #f0a63d; --amber-soft: #3b2a12;
+  --good: #6fd08f; --good-soft: #17331f; --bad: #ff8a80; --bad-soft: #3d1a18;
+  --term-bg: #0a1016; --term-ink: #cfe0d8; --term-dim: #71879a; --term-prompt: #79d0b6; --term-err: #ff9b8f;
+  --bubble-them: #1f2932; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { display: flex; flex-direction: column; gap: 12px; padding-block: 14px 20px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 20px; }
+.brand h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.55rem; margin: 0; letter-spacing: -0.01em; }
+.brand p { margin: 0; color: var(--muted); font-size: 0.85rem; }
+.stats { display: flex; gap: 18px; font-size: 0.82rem; color: var(--muted); }
+.stats b { display: block; font-family: var(--font-display); font-size: 1.25rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; display: flex; flex-direction: column; }
+.panel-head { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+
+/* queue */
+.queue-list { list-style: none; margin: 0; padding: 6px; display: flex; flex-direction: column; gap: 2px; overflow: auto; }
+.qitem { width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 9px 10px; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
+.qitem:hover { background: var(--surface-2); }
+.qitem[aria-current="true"] { background: var(--accent-soft); }
+.qitem .inc { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
+.qitem .subj { grid-column: 1 / -1; font-weight: 500; font-size: 0.9rem; line-height: 1.3; }
+.qitem .who { grid-column: 1 / -1; font-size: 0.78rem; color: var(--muted); }
+.pill { font-size: 0.7rem; font-weight: 600; padding: 1px 8px; border-radius: 99px; white-space: nowrap; align-self: start; }
+.pill.new { background: var(--amber-soft); color: var(--amber); }
+.pill.wip { background: var(--accent-soft); color: var(--accent); }
+.pill.done { background: var(--good-soft); color: var(--good); }
+
+/* ticket */
+.ticket-head { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.ticket-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: var(--muted); align-items: center; }
+.ticket-meta .mono { font-family: var(--font-mono); }
+.prio { color: var(--amber); font-weight: 600; }
+.ticket-head h2 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; margin: 0; text-wrap: balance; }
+.ticket-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.sla { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 6px 12px; font-weight: 500; font-size: 0.88rem; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+
+.chat { flex: 1; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 260px; }
+.msg { max-width: 82%; display: flex; flex-direction: column; gap: 2px; }
+.msg .from { font-size: 0.72rem; color: var(--muted); }
+.msg .body { padding: 8px 12px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.them { align-self: flex-start; }
+.msg.them .body { background: var(--bubble-them); border-top-left-radius: 4px; }
+.msg.me { align-self: flex-end; align-items: flex-end; }
+.msg.me .body { background: var(--accent); color: var(--surface); border-top-right-radius: 4px; }
+.msg.sys { align-self: center; max-width: 100%; }
+.msg.sys .body { background: none; color: var(--muted); font-size: 0.8rem; text-align: center; padding: 2px; }
+.typing .body { color: var(--muted); font-style: italic; }
+.composer { border-top: 1px solid var(--line); padding: 10px; display: flex; gap: 8px; }
+.composer input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; background: var(--surface-2); }
+.ai-note { font-size: 0.75rem; color: var(--muted); padding: 0 16px 10px; }
+
+/* resolve form */
+.resolve { padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow: auto; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-weight: 600; font-size: 0.88rem; }
+.field small { color: var(--muted); font-size: 0.78rem; }
+.field textarea { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface-2); resize: vertical; min-height: 70px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* grade */
+.grade { display: flex; flex-direction: column; gap: 12px; }
+.score { display: flex; align-items: baseline; gap: 10px; }
+.score b { font-family: var(--font-display); font-size: 2.6rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.verdict { font-weight: 600; padding: 2px 10px; border-radius: 99px; font-size: 0.8rem; }
+.verdict.ok { background: var(--good-soft); color: var(--good); }
+.verdict.no { background: var(--bad-soft); color: var(--bad); }
+.bars { display: grid; grid-template-columns: max-content 1fr max-content; gap: 6px 10px; align-items: center; font-size: 0.85rem; }
+.bar { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; border: 1px solid var(--line); }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.grade h3 { font-size: 0.9rem; margin: 4px 0 0; }
+.grade ul { margin: 0; padding-left: 1.2em; }
+.reveal { background: var(--amber-soft); color: var(--ink); border-radius: 8px; padding: 10px 12px; font-size: 0.88rem; }
+.reveal b { color: var(--amber); }
+.model-note { font-family: var(--font-mono); font-size: 0.8rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* terminal */
+.term-panel { background: var(--term-bg); border-color: var(--term-bg); color: var(--term-ink); }
+.term-panel .panel-head { border-color: rgba(127, 149, 163, 0.25); }
+.term-panel .label { color: var(--term-dim); }
+.term-host { font-family: var(--font-mono); font-size: 0.78rem; color: var(--term-prompt); }
+.term { flex: 1; overflow: auto; padding: 12px 14px; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.45; min-height: 300px; }
+.term pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+.term .cmd { color: var(--term-ink); }
+.term .cmd span { color: var(--term-prompt); }
+.term .out { color: var(--term-dim); }
+.term .err { color: var(--term-err); }
+.term .note { color: var(--term-prompt); }
+.term-input { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid rgba(127, 149, 163, 0.25); font-family: var(--font-mono); font-size: 0.82rem; }
+.term-input span { color: var(--term-prompt); white-space: nowrap; }
+.term-input input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--term-ink); font-family: var(--font-mono); font-size: 0.82rem; outline: none; }
+.term-input:focus-within { box-shadow: inset 0 0 0 1px var(--term-prompt); border-radius: 0 0 10px 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 12px; }
+.chip { font-family: var(--font-mono); font-size: 0.72rem; background: rgba(121, 208, 182, 0.12); color: var(--term-prompt); border: 1px solid rgba(121, 208, 182, 0.3); border-radius: 6px; padding: 2px 8px; }
+
+@media (min-width: 1100px) {
+  html, body { height: 100%; }
+  .app { height: 100%; }
+  .grid { flex: 1; min-height: 0; grid-template-columns: 250px minmax(0, 1fr) minmax(0, 1fr); }
+  .panel { min-height: 0; }
+  .chat, .term { min-height: 0; }
+}
+@media (min-width: 720px) and (max-width: 1099px) {
+  .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .queue { grid-column: 1 / -1; }
+  .queue-list { flex-direction: row; flex-wrap: wrap; }
+  .queue-list li { flex: 1 1 210px; }
+  .chat, .term { max-height: 520px; }
+}
+@media (max-width: 719px) {
+  .queue-list { flex-direction: row; overflow-x: auto; }
+  .queue-list li { flex: 0 0 220px; }
+  .chat, .term { max-height: 420px; }
+  .msg { max-width: 92%; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Problem Coworker</h1>
+      <p>Inland Valley Supply · Service Desk Tier 1 · practice queue</p>
+    </div>
+    <div class="stats" aria-label="Your stats">
+      <div><b id="stClosed">0</b>tickets closed</div>
+      <div><b id="stAvg">–</b>average score</div>
+      <div><b id="stCause">–</b>root causes found</div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel queue" aria-label="Ticket queue">
+      <div class="panel-head"><span class="label">Queue · Network</span></div>
+      <ul class="queue-list" id="queue"></ul>
+    </section>
+
+    <section class="panel" aria-label="Ticket">
+      <div class="ticket-head">
+        <div class="ticket-meta">
+          <span class="mono" id="tInc"></span>
+          <span class="prio" id="tPrio"></span>
+          <span id="tWho"></span>
+        </div>
+        <h2 id="tSubj"></h2>
+        <div class="ticket-actions">
+          <span class="sla" id="tSla">Open 00:00</span>
+          <div class="row">
+            <button class="btn" id="btnReset" type="button">Restart ticket</button>
+            <button class="btn primary" id="btnResolve" type="button">Resolve ticket</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="chatView" style="display:contents">
+        <div class="chat" id="chat" aria-live="polite"></div>
+        <form class="composer" id="composer">
+          <input id="chatInput" autocomplete="off" placeholder="Message the user…" aria-label="Message the user">
+          <button class="btn primary" type="submit" id="chatSend">Send</button>
+        </form>
+        <p class="ai-note" id="aiNote">The coworker is played by Claude. Your first message asks you to allow that.</p>
+      </div>
+
+      <div class="resolve" id="resolveView" hidden>
+        <form id="resolveForm" class="resolve" style="padding:0">
+          <div class="field">
+            <label for="fCause">Root cause</label>
+            <small>What was actually wrong, in one or two sentences.</small>
+            <textarea id="fCause" required></textarea>
+          </div>
+          <div class="field">
+            <label for="fSteps">Work notes</label>
+            <small>What you checked, what you found, what you changed. Written for the next technician.</small>
+            <textarea id="fSteps" required style="min-height:110px"></textarea>
+          </div>
+          <div class="field">
+            <label for="fUser">Message to the user</label>
+            <small>Plain language. What happened and what to do if it comes back.</small>
+            <textarea id="fUser" required></textarea>
+          </div>
+          <div class="row">
+            <button class="btn" type="button" id="btnBack">Back to ticket</button>
+            <button class="btn primary" type="submit" id="btnSubmit">Submit for review</button>
+          </div>
+        </form>
+        <div class="grade" id="grade" hidden></div>
+      </div>
+    </section>
+
+    <section class="panel term-panel" aria-label="Terminal">
+      <div class="panel-head">
+        <span class="label">Lab console · cmd</span>
+        <span class="term-host" id="termHost"></span>
+      </div>
+      <div class="term" id="term"></div>
+      <div class="chips" id="chips"></div>
+      <form class="term-input" id="termForm">
+        <span id="termPrompt">C:\&gt;</span>
+        <input id="termInput" autocomplete="off" spellcheck="false" aria-label="Command">
+      </form>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const NAMES = {
+    "google.com": "142.250.72.14", "www.google.com": "142.250.72.36",
+    "microsoft.com": "20.70.246.20", "www.microsoft.com": "23.45.180.122",
+    "outlook.office.com": "52.96.165.18", "teams.microsoft.com": "52.113.194.132",
+    "portal.ivsupply.com": "34.117.59.81", "fs01": "192.168.10.20", "fs01.ivsupply.local": "192.168.10.20",
+    "dc01": "192.168.10.5", "dc01.ivsupply.local": "192.168.10.5"
+  };
+  const LAN_HOSTS = { "192.168.10.1": "gateway", "192.168.10.5": "dc01", "192.168.10.20": "fs01" };
+
+  const SCEN = [
+    { id: "adapter", inc: "INC0041873", prio: "P2 · High", name: "Dana Whitfield", dept: "Accounts Payable", host: "IVS-AP-014",
+      subj: "Internet completely down, invoices due at noon",
+      opening: "Hi, my internet just completely died?? Outlook says disconnected and Chrome says no internet. I have invoices due by noon. Can you help please",
+      persona: "stressed and in a hurry, polite but anxious, types fast with little punctuation",
+      cause: "Her Ethernet network adapter was disabled in Windows. She accidentally disabled it while trying to turn off the Wi-Fi pop-ups this morning.",
+      facts: "She is on a wired desktop PC. It worked first thing this morning. The coworker next to her is fine. About 20 minutes ago she was clicking around in the network settings trying to stop a Wi-Fi popup and right-clicked some things. She did not restart.",
+      physical: "none", label: "Ethernet adapter disabled in Windows" },
+    { id: "dns", inc: "INC0041879", prio: "P3 · Moderate", name: "Marcus Lee", dept: "Warehouse Dispatch", host: "IVS-WH-022",
+      subj: "Websites won't load but wifi icon says connected",
+      opening: "yo nothing loads. the little network icon says connected but every website just spins then fails. need the shipping portal asap",
+      persona: "casual, a bit impatient, short lowercase messages, friendly",
+      cause: "His DNS server was manually set to 1.2.3.4, which does not answer. He followed a YouTube 'speed up your internet' video yesterday that changed his DNS settings.",
+      facts: "Desktop PC, wired. It broke yesterday afternoon. Yesterday on his break he watched a YouTube video about making the internet faster and changed 'some numbers' in the network settings like the video said. Other people in the warehouse office are fine.",
+      physical: "none", label: "DNS server manually set to an unreachable address (1.2.3.4)" },
+    { id: "apipa", inc: "INC0041884", prio: "P3 · Moderate", name: "Priya Raman", dept: "Human Resources", host: "IVS-HR-031",
+      subj: "Yellow triangle and no internet after docking laptop",
+      opening: "Hi! I just got back from a meeting and plugged my laptop back into the dock, and now there's a little yellow triangle and no internet. It was fine this morning.",
+      persona: "cheerful and patient, writes complete sentences, apologizes a lot",
+      cause: "The laptop did not get an address from DHCP after re-docking, so Windows gave itself a 169.254 self-assigned (APIPA) address. Releasing and renewing the IP address fixes it.",
+      facts: "Laptop on a USB-C dock with a network cable into the dock. Wi-Fi is turned off by company policy on her laptop. She undocked for a meeting about an hour ago and re-docked 10 minutes ago. Lights on the dock look normal.",
+      physical: "unplugging and replugging the dock (that would also fix it)", label: "No DHCP lease after re-docking, APIPA 169.254 address" },
+    { id: "gateway", inc: "INC0041890", prio: "P3 · Moderate", name: "Tom Becker", dept: "Sales", host: "IVS-SL-008",
+      subj: "Shared drive works, internet doesn't",
+      opening: "Hey, weird one. I can open the shared drive fine but I have zero internet. Customer quotes are due today so kind of urgent.",
+      persona: "chatty and joking, a little embarrassed, likes to tell stories",
+      cause: "A static IP address was set with the wrong default gateway (192.168.10.254 instead of 192.168.10.1). Local network works, nothing beyond it does. His nephew set it while 'fixing' the laptop over the weekend.",
+      facts: "Laptop, wired at his desk. His nephew 'fixed his laptop' over the weekend because it was slow, and said he 'set the network up properly'. Shared drive (the S: drive) opens fine. No websites work. Teams won't connect either.",
+      physical: "none", label: "Static IP with wrong default gateway (192.168.10.254)" },
+    { id: "hosts", inc: "INC0041896", prio: "P4 · Low", name: "Gloria Ortiz", dept: "Front Desk", host: "IVS-FD-002",
+      subj: "Outlook on the web won't open, everything else works",
+      opening: "Good morning. Everything works except Outlook on the web. It says 'This site can't be reached'. Google and the other sites work fine and the girls in the office can get in to Outlook.",
+      persona: "formal, calm, a little old-fashioned, very precise about what she sees",
+      cause: "The Windows hosts file has a line '127.0.0.1 outlook.office.com', which points Outlook on the web at her own computer. A 'block distractions' script a former intern ran on this PC added it.",
+      facts: "Front desk shared desktop. Only outlook.office.com fails, in both Chrome and Edge. A summer intern used this computer for a few weeks and 'installed some productivity tool'. It's been like this since Monday.",
+      physical: "none", label: "Hosts file entry redirects outlook.office.com to 127.0.0.1" },
+    { id: "proxy", inc: "INC0041902", prio: "P3 · Moderate", name: "Kevin Shaw", dept: "Facilities", host: "IVS-FC-011",
+      subj: "Chrome and Edge both say site can't be reached",
+      opening: "Chrome and Edge both say 'this site can't be reached' on everything. Weird part is Teams still works and so does the shared drive.",
+      persona: "matter-of-fact, practical, slightly grumpy, short replies",
+      cause: "A manual proxy server (10.10.10.99:8080) is set in Windows proxy settings. That old proxy no longer exists, so browsers fail while Teams and ping still work.",
+      facts: "Desktop in the facilities office. A vendor came in yesterday to set up the HVAC monitoring software and 'changed some internet settings'. Teams messages send fine. Error mentions something about a proxy if you look closely, but he didn't read it.",
+      physical: "none", label: "Manual proxy set to a dead server (10.10.10.99:8080)" },
+    { id: "cable", inc: "INC0041911", prio: "P3 · Moderate", name: "Aisha Brooks", dept: "Marketing", host: "IVS-MK-019",
+      subj: "No internet since this morning",
+      opening: "My computer says no internet. The cleaning crew moved my desk last night if that matters?",
+      persona: "friendly, curious, wants to learn what went wrong",
+      cause: "The Ethernet cable came out of the wall jack when the cleaning crew moved her desk. ipconfig shows 'Media disconnected'.",
+      facts: "Desktop under her desk. Desk was pushed against the wall last night. There's a blue cable from the PC that goes to the wall behind the desk. She hasn't looked behind the desk.",
+      physical: "plugging the blue network cable firmly back into the wall jack or the PC", label: "Ethernet cable unplugged from the wall jack" }
+  ];
+
+  const STORE_KEY = "pcw-v1";
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {}; } catch (e) { state = {}; }
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+  function blank(s) {
+    return { status: "new", fixed: false, startedAt: null, chat: [{ who: "them", text: s.opening }], term: [], cmds: [], released: false, result: null, proxyPanel: false };
+  }
+  SCEN.forEach(s => { if (!state[s.id]) state[s.id] = blank(s); });
+  let cur = state._cur && SCEN.find(s => s.id === state._cur) ? state._cur : SCEN[0].id;
+
+  const $ = id => document.getElementById(id);
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const scen = () => SCEN.find(s => s.id === cur);
+  const st = () => state[cur];
+
+  /* ---------- network model ---------- */
+  function net(s, t) {
+    const f = t.fixed;
+    const n = { up: true, media: true, ip: "192.168.10.57", mask: "255.255.255.0", gw: "192.168.10.1", dns: ["192.168.10.5", "192.168.10.1"], dhcp: true, apipa: false, hostsBlock: false, proxy: false };
+    if (s.id === "adapter" && !f) n.up = false;
+    if (s.id === "cable" && !f) n.media = false;
+    if (s.id === "apipa" && !f) { n.apipa = true; n.ip = t.released ? "" : "169.254.77.12"; n.mask = "255.255.0.0"; n.gw = ""; n.dns = []; }
+    if (s.id === "dns" && !f) { n.dns = ["1.2.3.4"]; }
+    if (s.id === "gateway" && !f) { n.dhcp = false; n.gw = "192.168.10.254"; n.dns = ["192.168.10.1"]; }
+    if (s.id === "hosts" && !f) n.hostsBlock = true;
+    if (s.id === "proxy" && !f) n.proxy = true;
+    return n;
+  }
+  const online = n => n.up && n.media && !n.apipa;
+  const isIp = x => /^\d{1,3}(\.\d{1,3}){3}$/.test(x);
+  const sameLan = ip => ip.startsWith("192.168.10.");
+  function realIp(name) {
+    name = name.toLowerCase();
+    if (NAMES[name]) return NAMES[name];
+    if (!name.includes(".")) return null;
+    let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return "104." + (16 + h % 40) + "." + (h >> 8) % 250 + "." + (h >> 16) % 250;
+  }
+  function dnsWorks(n) { return online(n) && !n.dns.includes("1.2.3.4") && n.dns.length > 0; }
+  function resolve(n, name) {
+    const lower = name.toLowerCase();
+    if (n.hostsBlock && lower === "outlook.office.com") return { ip: "127.0.0.1" };
+    if (lower === "localhost") return { ip: "127.0.0.1" };
+    if (!dnsWorks(n)) return { fail: true };
+    const ip = realIp(lower);
+    return ip ? { ip } : { fail: true };
+  }
+  function reachable(n, ip) {
+    if (ip === "127.0.0.1" || ip === n.ip) return "ok";
+    if (!online(n)) return "general";
+    if (sameLan(ip)) return (LAN_HOSTS[ip] && !(ip === "192.168.10.1" && false)) ? "ok" : (ip === n.gw && n.gw === "192.168.10.254" ? "unreach" : "timeout");
+    if (n.gw !== "192.168.10.1") return "unreach";
+    return "ok";
+  }
+
+  /* ---------- command output ---------- */
+  const ADAPTER = "Intel(R) Ethernet Connection (7) I219-LM";
+  const MAC = { adapter: "3C-52-82-4A-19-07", dns: "3C-52-82-4A-22-B1", apipa: "F8-75-A4-11-C3-9E", gateway: "54-BF-64-0D-7E-2A", hosts: "3C-52-82-4A-02-6C", proxy: "3C-52-82-4A-11-F3", cable: "3C-52-82-4A-19-5D" };
+  function ipconfig(s, n, all) {
+    const L = ["", "Windows IP Configuration", ""];
+    if (all) {
+      L.push("   Host Name . . . . . . . . . . . . : " + s.host, "   Primary Dns Suffix  . . . . . . . : ivsupply.local", "   Node Type . . . . . . . . . . . . : Hybrid", "   IP Routing Enabled. . . . . . . . : No", "");
+    }
+    if (!n.up) return L.join("\n") + (all ? "" : "") + "\n";
+    L.push("", "Ethernet adapter Ethernet:", "");
+    if (!n.media) {
+      L.push("   Media State . . . . . . . . . . . : Media disconnected", "   Connection-specific DNS Suffix  . : ");
+      if (all) L.push("   Description . . . . . . . . . . . : " + ADAPTER, "   Physical Address. . . . . . . . . : " + MAC[s.id], "   DHCP Enabled. . . . . . . . . . . : Yes", "   Autoconfiguration Enabled . . . . : Yes");
+      return L.join("\n");
+    }
+    L.push("   Connection-specific DNS Suffix  . : " + (n.apipa ? "" : "ivsupply.local"));
+    if (all) L.push("   Description . . . . . . . . . . . : " + ADAPTER, "   Physical Address. . . . . . . . . : " + MAC[s.id], "   DHCP Enabled. . . . . . . . . . . : " + (n.dhcp ? "Yes" : "No"), "   Autoconfiguration Enabled . . . . : Yes");
+    L.push("   Link-local IPv6 Address . . . . . : fe80::1c4a:9b2e:77d1:3f20%12");
+    if (n.apipa) {
+      if (n.ip) L.push("   Autoconfiguration IPv4 Address. . : " + n.ip + (all ? "(Preferred)" : ""), "   Subnet Mask . . . . . . . . . . . : " + n.mask);
+      L.push("   Default Gateway . . . . . . . . . : ");
+    } else {
+      L.push("   IPv4 Address. . . . . . . . . . . : " + n.ip + (all ? "(Preferred)" : ""), "   Subnet Mask . . . . . . . . . . . : " + n.mask);
+      if (all && n.dhcp) L.push("   Lease Obtained. . . . . . . . . . : Tuesday, November 10, 2026 7:42:18 AM", "   Lease Expires . . . . . . . . . . : Wednesday, November 11, 2026 7:42:18 AM");
+      L.push("   Default Gateway . . . . . . . . . : " + n.gw);
+    }
+    if (all) {
+      if (n.dhcp && !n.apipa) L.push("   DHCP Server . . . . . . . . . . . : 192.168.10.5");
+      if (n.dns.length) { L.push("   DNS Servers . . . . . . . . . . . : " + n.dns[0]); n.dns.slice(1).forEach(d => L.push("                                       " + d)); }
+      else L.push("   DNS Servers . . . . . . . . . . . : fec0:0:0:ffff::1%1", "                                       fec0:0:0:ffff::2%1");
+      L.push("   NetBIOS over Tcpip. . . . . . . . : Enabled");
+    }
+    return L.join("\n");
+  }
+  function ping(s, n, target) {
+    let ip = target, head;
+    if (!isIp(target)) {
+      const r = resolve(n, target);
+      if (r.fail) return { err: true, text: "Ping request could not find host " + target + ". Please check the name and try again." };
+      ip = r.ip; head = "Pinging " + target + " [" + ip + "] with 32 bytes of data:";
+    } else head = "Pinging " + ip + " with 32 bytes of data:";
+    const r = reachable(n, ip);
+    let lines = [];
+    let recv = 4;
+    const base = ip === "127.0.0.1" || ip === n.ip ? 0 : sameLan(ip) ? 1 : 14;
+    for (let i = 0; i < 4; i++) {
+      if (r === "ok") { const ms = base + ((i * 7 + ip.length) % 5); lines.push("Reply from " + ip + ": bytes=32 time" + (ms < 1 ? "<1" : "=" + ms) + "ms TTL=" + (ip === "127.0.0.1" ? 128 : sameLan(ip) ? 64 : 117)); }
+      else if (r === "general") { lines.push("PING: transmit failed. General failure."); recv = 0; }
+      else if (r === "unreach") { lines.push("Reply from " + n.ip + ": Destination host unreachable."); }
+      else { lines.push("Request timed out."); recv = 0; }
+    }
+    const lost = r === "ok" || r === "unreach" ? 0 : 4;
+    const stats = ["", "Ping statistics for " + ip + ":", "    Packets: Sent = 4, Received = " + (lost ? 0 : 4) + ", Lost = " + lost + " (" + lost * 25 + "% loss),"];
+    if (r === "ok") stats.push("Approximate round trip times in milli-seconds:", "    Minimum = " + base + "ms, Maximum = " + (base + 4) + "ms, Average = " + (base + 2) + "ms");
+    return { err: r !== "ok", text: ["", head].concat(lines, stats).join("\n") };
+  }
+  function nslookup(s, n, name) {
+    if (!online(n)) return { err: true, text: "*** Default servers are not available\nServer:  UnKnown\nAddress:  127.0.0.1\n\n*** UnKnown can't find " + name + ": No response from server" };
+    if (n.dns.includes("1.2.3.4")) return { err: true, text: "DNS request timed out.\n    timeout was 2 seconds.\nServer:  UnKnown\nAddress:  1.2.3.4\n\nDNS request timed out.\n    timeout was 2 seconds.\nDNS request timed out.\n    timeout was 2 seconds.\n*** Request to UnKnown timed-out" };
+    const server = n.dns[0] === "192.168.10.5" ? "dc01.ivsupply.local" : "gateway.ivsupply.local";
+    const head = "Server:  " + server + "\nAddress:  " + n.dns[0] + "\n\n";
+    const ip = realIp(name);
+    if (!ip) return { err: true, text: head + "*** " + server + " can't find " + name + ": Non-existent domain" };
+    return { text: head + (sameLan(ip) ? "" : "Non-authoritative answer:\n") + "Name:    " + name.toLowerCase() + "\nAddress:  " + ip };
+  }
+  function tracert(s, n, target) {
+    let ip = target;
+    if (!isIp(target)) { const r = resolve(n, target); if (r.fail) return { err: true, text: "Unable to resolve target system name " + target + "." }; ip = r.ip; }
+    const head = "\nTracing route to " + (isIp(target) ? ip : target + " [" + ip + "]") + "\nover a maximum of 30 hops:\n\n";
+    if (!online(n)) return { err: true, text: head + "  1     Transmit error: code 1231.\n\nTrace complete." };
+    if (ip === "127.0.0.1") return { text: head + "  1    <1 ms    <1 ms    <1 ms  " + s.host + " [127.0.0.1]\n\nTrace complete." };
+    if (sameLan(ip)) return { text: head + "  1    <1 ms    <1 ms    <1 ms  " + ip + "\n\nTrace complete." };
+    if (n.gw !== "192.168.10.1") return { err: true, text: head + "  1  " + s.host + " [" + n.ip + "]  reports: Destination host unreachable.\n\nTrace complete." };
+    return { text: head + "  1    <1 ms    <1 ms    <1 ms  gateway.ivsupply.local [192.168.10.1]\n  2     6 ms     5 ms     7 ms  96.120.88.1\n  3    11 ms     9 ms    10 ms  be-301-ar01.riverside.ca.ibone.net [68.86.92.141]\n  4    13 ms    14 ms    12 ms  * \n  5    15 ms    14 ms    15 ms  " + ip + "\n\nTrace complete." };
+  }
+  function browser(s, n, url) {
+    const host = url.replace(/^https?:\/\//i, "").split(/[\/?#]/)[0].toLowerCase();
+    const say = (code, msg) => ({ err: true, text: "[Browser] " + host + "\nThis site can't be reached\n" + msg + "\n" + code });
+    if (!online(n)) return say("ERR_INTERNET_DISCONNECTED", "You're not connected to the internet.");
+    if (n.proxy) return say("ERR_PROXY_CONNECTION_FAILED", "There is something wrong with the proxy server, or the address is incorrect.");
+    const r = resolve(n, host);
+    if (r.fail) return say("DNS_PROBE_FINISHED_BAD_CONFIG", host + "'s server IP address could not be found.");
+    if (r.ip === "127.0.0.1") return say("ERR_CONNECTION_REFUSED", host + " refused to connect.");
+    if (!sameLan(r.ip) && n.gw !== "192.168.10.1") return say("ERR_ADDRESS_UNREACHABLE", host + " is unreachable.");
+    return { text: "[Browser] " + host + "\nPage loaded (200 OK)." };
+  }
+  const HOSTS_BASE = "# Copyright (c) 1993-2009 Microsoft Corp.\n#\n# This is a sample HOSTS file used by Microsoft TCP/IP for Windows.\n#\n# localhost name resolution is handled within DNS itself.\n#\t127.0.0.1       localhost\n#\t::1             localhost\n";
+
+  function run(raw) {
+    const s = scen(), t = st();
+    const cmd = raw.trim();
+    const c = cmd.toLowerCase().replace(/\s+/g, " ");
+    if (!t.startedAt) { t.startedAt = Date.now(); }
+    if (t.status === "new") t.status = "wip";
+    const n = net(s, t);
+    const out = (text, cls) => ({ text, cls: cls || "out" });
+    const ok = r => out(r.text, r.err ? "out" : "out");
+    if (!c) return null;
+    t.cmds.push(cmd);
+    if (c === "cls" || c === "clear") { t.term = []; return "clear"; }
+    if (c === "help" || c === "?") return out("Lab console commands (cmd.exe style):\n  ipconfig, ipconfig /all, ipconfig /release, ipconfig /renew, ipconfig /flushdns\n  ping <host or IP>, nslookup <name>, tracert <host or IP>\n  netsh interface show interface\n  netsh interface set interface \"Ethernet\" enable\n  netsh interface ip set dns \"Ethernet\" dhcp\n  netsh interface ip set address \"Ethernet\" dhcp\n  type C:\\Windows\\System32\\drivers\\etc\\hosts, notepad C:\\Windows\\System32\\drivers\\etc\\hosts\n  reg query \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\"\n  start ms-settings:network-proxy, start https://<site> (opens the browser)\n  hostname, whoami, getmac, cls\nPowerShell names like Enable-NetAdapter and Set-DnsClientServerAddress also work.", "note");
+    if (c === "hostname") return out(s.host);
+    if (c === "whoami") return out("ivsupply\\" + s.name.split(" ")[0][0].toLowerCase() + s.name.split(" ")[1].toLowerCase());
+    if (c === "getmac") return out("\nPhysical Address    Transport Name\n=================== ==========================================================\n" + MAC[s.id] + "   " + (n.up && n.media ? "\\Device\\Tcpip_{8E1F4C2A-5B7D-4E19-9C3A-2F6D1B0A7E44}" : n.up ? "Media disconnected" : "Disabled"));
+    if (c === "ipconfig") return out(ipconfig(s, n, false));
+    if (c === "ipconfig /all") return out(ipconfig(s, n, true));
+    if (c === "ipconfig /flushdns") return out("\nWindows IP Configuration\n\nSuccessfully flushed the DNS Resolver Cache.");
+    if (c === "ipconfig /release") {
+      if (!n.up) return out("\nWindows IP Configuration\n\nThe operation failed as no adapter is in the state permissible for\nthis operation.", "err");
+      if (!n.media) return out("\nWindows IP Configuration\n\nNo operation can be performed on Ethernet while it has its media disconnected.", "err");
+      if (!n.dhcp) return out("\nWindows IP Configuration\n\nAdapter Ethernet is not enabled for Dhcp.", "err");
+      if (s.id === "apipa" && !t.fixed) t.released = true;
+      return out("\nWindows IP Configuration\n\n\nEthernet adapter Ethernet:\n\n   Connection-specific DNS Suffix  . :\n   Link-local IPv6 Address . . . . . : fe80::1c4a:9b2e:77d1:3f20%12\n   Default Gateway . . . . . . . . . :");
+    }
+    if (c === "ipconfig /renew") {
+      if (!n.up) return out("\nWindows IP Configuration\n\nThe operation failed as no adapter is in the state permissible for\nthis operation.", "err");
+      if (!n.media) return out("\nWindows IP Configuration\n\nNo operation can be performed on Ethernet while it has its media disconnected.", "err");
+      if (!n.dhcp) return out("\nWindows IP Configuration\n\nAdapter Ethernet is not enabled for Dhcp.", "err");
+      if (s.id === "apipa") t.fixed = true;
+      return out(ipconfig(s, net(s, t), false));
+    }
+    let m;
+    if ((m = c.match(/^(ping|nslookup|tracert)(?: -[a-z]+(?: \d+)?)* ([^\s]+)$/))) {
+      const tool = m[1], target = m[2].replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+      const r = tool === "ping" ? ping(s, n, target) : tool === "nslookup" ? nslookup(s, n, target) : tracert(s, n, target);
+      return ok(r);
+    }
+    if (c === "ping" || c === "nslookup" || c === "tracert") return out("Usage: " + c + " <host or IP address>", "err");
+    if (/^netsh int(erface)? show int(erface)?$/.test(c) || c === "get-netadapter") {
+      const admin = n.up ? "Enabled " : "Disabled", stt = !n.up ? "Disconnected" : n.media ? "Connected   " : "Disconnected";
+      if (c === "get-netadapter") return out("\nName      InterfaceDescription                 ifIndex Status       MacAddress\n----      --------------------                 ------- ------       ----------\nEthernet  " + ADAPTER.slice(0, 35) + "  12 " + (n.up ? (n.media ? "Up          " : "Disconnected") : "Disabled    ") + " " + MAC[s.id]);
+      return out("\nAdmin State    State          Type             Interface Name\n-------------------------------------------------------------------------\n" + admin + "       " + stt + "   Dedicated        Ethernet");
+    }
+    if (/^netsh int(erface)? set int(erface)? (name=)?"?ethernet"? (admin=)?(enable|enabled)$/.test(c) || /^enable-netadapter (-name )?"?ethernet"?( -confirm:\$false)?$/.test(c)) {
+      if (s.id === "adapter") t.fixed = true;
+      return out("");
+    }
+    if (/^netsh int(erface)? set int(erface)? .*disable/.test(c) || /^disable-netadapter/.test(c)) return out("Lab note: disabling the adapter would cut off this console. Skipped.", "note");
+    if (/^netsh int(erface)? ip(v4)? set dns(servers)? (name=)?"?ethernet"? (source=)?dhcp$/.test(c) || /^set-dnsclientserveraddress .*-resetserveraddresses/.test(c)) {
+      if (s.id === "dns") t.fixed = true;
+      return out("");
+    }
+    if (/^netsh int(erface)? ip(v4)? set dns/.test(c)) return out("Lab note: in this lab, set DNS back to automatic with: netsh interface ip set dns \"Ethernet\" dhcp", "note");
+    if (/^netsh int(erface)? ip(v4)? set address (name=)?"?ethernet"? (source=)?dhcp$/.test(c)) {
+      if (s.id === "gateway") t.fixed = true;
+      return out("");
+    }
+    if (/^netsh int(erface)? ip(v4)? show (config|addresses)/.test(c)) {
+      if (!n.up) return out("The interface Ethernet is disabled.", "err");
+      return out("\nConfiguration for interface \"Ethernet\"\n    DHCP enabled:                         " + (n.dhcp ? "Yes" : "No") + (n.media && n.ip ? "\n    IP Address:                           " + n.ip + "\n    Subnet Prefix:                        " + (n.apipa ? "169.254.0.0/16 (mask 255.255.0.0)" : "192.168.10.0/24 (mask 255.255.255.0)") + (n.gw ? "\n    Default Gateway:                      " + n.gw : "") : "") + "\n    " + (n.dhcp && n.dns[0] !== "1.2.3.4" ? "DNS servers configured through DHCP:" : "Statically Configured DNS Servers:") + "  " + (n.dns.join("\n                                          ") || "None"));
+    }
+    if (/^(type|cat|get-content|more) .*hosts"?$/.test(c)) return out(HOSTS_BASE + (n.hostsBlock ? "\n# FocusBlock - added by FocusBlock Lite\n127.0.0.1       outlook.office.com\n127.0.0.1       www.facebook.com\n" : ""));
+    if (/^notepad .*hosts"?$/.test(c)) {
+      if (n.hostsBlock) { t.fixed = true; return out("[Notepad] hosts opened as Administrator.\nYou removed the FocusBlock lines and saved the file.\nTip: run ipconfig /flushdns next.", "note"); }
+      return out("[Notepad] hosts opened. Nothing in it but the default comments. Closed without saving.", "note");
+    }
+    if (/^reg query .*internet settings"?/.test(c)) return out("\nHKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\n    DisableCachingOfSSLPages    REG_DWORD    0x0\n    IE5_UA_Backup_Flag    REG_SZ    5.0\n    PrivacyAdvanced    REG_DWORD    0x1\n    ProxyEnable    REG_DWORD    " + (n.proxy ? "0x1" : "0x0") + (n.proxy ? "\n    ProxyServer    REG_SZ    10.10.10.99:8080\n    ProxyOverride    REG_SZ    <local>" : "") + "\n    EnableNegotiate    REG_DWORD    0x1");
+    if (/^reg add .*internet settings"? .*proxyenable.* \/d 0/.test(c)) { if (s.id === "proxy") t.fixed = true; return out("The operation completed successfully."); }
+    if (c === "start ms-settings:network-proxy") {
+      t.proxyPanel = true;
+      return out("[Settings > Network & internet > Proxy]\n  Automatic proxy setup\n    Automatically detect settings ........ On\n  Manual proxy setup\n    Use a proxy server ................... " + (n.proxy ? "On\n    Address: 10.10.10.99   Port: 8080" : "Off") + "\n\nType 'proxy off' to switch off the manual proxy.", "note");
+    }
+    if (c === "proxy off") {
+      if (!t.proxyPanel) return out("Open the proxy settings first: start ms-settings:network-proxy", "err");
+      if (s.id === "proxy") t.fixed = true;
+      return out("[Settings] Use a proxy server: Off. Saved.", "note");
+    }
+    if ((m = c.match(/^start (?:chrome |msedge |microsoft-edge:)?((?:https?:\/\/)?[a-z0-9.-]+\.[a-z]{2,}\S*)$/))) return ok(browser(s, n, m[1]));
+    if (c.startsWith("start ")) return out("Lab note: try start https://outlook.office.com or start ms-settings:network-proxy", "note");
+    if (/^(shutdown|restart-computer)/.test(c)) return out("Lab note: a restart would close the ticket session. Try to find the actual cause.", "note");
+    return out("'" + cmd.split(" ")[0] + "' is not recognized as an internal or external command,\noperable program or batch file.", "err");
+  }
+
+  /* ---------- render ---------- */
+  function renderQueue() {
+    $("queue").innerHTML = SCEN.map(s => {
+      const t = state[s.id];
+      const pill = t.status === "done" ? '<span class="pill done">' + (t.result && typeof t.result.score === "number" ? t.result.score : "Closed") + '</span>' : t.status === "wip" ? '<span class="pill wip">In progress</span>' : '<span class="pill new">New</span>';
+      return '<li><button class="qitem" type="button" data-id="' + s.id + '" aria-current="' + (s.id === cur) + '"><span class="inc">' + s.inc + '</span>' + pill + '<span class="subj">' + esc(s.subj) + '</span><span class="who">' + esc(s.name) + ' · ' + esc(s.dept) + '</span></button></li>';
+    }).join("");
+  }
+  function renderStats() {
+    const done = SCEN.map(s => state[s.id]).filter(t => t.status === "done" && t.result);
+    $("stClosed").textContent = done.length;
+    const scored = done.filter(t => typeof t.result.score === "number");
+    $("stAvg").textContent = scored.length ? Math.round(scored.reduce((a, t) => a + t.result.score, 0) / scored.length) : "–";
+    $("stCause").textContent = done.length ? done.filter(t => t.result.causeFound).length + "/" + done.length : "–";
+  }
+  function renderChat() {
+    const t = st(), s = scen();
+    $("chat").innerHTML = t.chat.map(m => {
+      if (m.who === "sys") return '<div class="msg sys"><div class="body">' + esc(m.text) + '</div></div>';
+      return '<div class="msg ' + m.who + '"><span class="from">' + (m.who === "me" ? "You" : esc(s.name)) + '</span><div class="body">' + esc(m.text) + '</div></div>';
+    }).join("");
+    $("chat").scrollTop = $("chat").scrollHeight;
+  }
+  function renderTerm() {
+    const t = st();
+    const intro = '<pre class="note">Lab console connected to ' + esc(scen().host) + '. Type help for commands.</pre>';
+    $("term").innerHTML = intro + t.term.map(l => '<pre class="' + l.cls + '">' + (l.cls === "cmd" ? '<span>C:\\Users\\' + esc(scen().name.split(" ")[0]) + '&gt;</span> ' + esc(l.text) : esc(l.text)) + '</pre>').join("");
+    $("term").scrollTop = $("term").scrollHeight;
+  }
+  function renderTicket() {
+    const s = scen(), t = st();
+    $("tInc").textContent = s.inc;
+    $("tPrio").textContent = s.prio;
+    $("tWho").textContent = s.name + " · " + s.dept + " · " + s.host;
+    $("tSubj").textContent = s.subj;
+    $("termHost").textContent = s.host;
+    $("termPrompt").textContent = "C:\\Users\\" + s.name.split(" ")[0] + ">";
+    $("chips").innerHTML = ["ipconfig", "ipconfig /all", "ping 192.168.10.1", "ping 8.8.8.8", "ping google.com", "nslookup google.com"].map(x => '<button class="chip" type="button" data-cmd="' + esc(x) + '">' + esc(x) + '</button>').join("");
+    const done = t.status === "done";
+    $("btnResolve").disabled = done;
+    $("chatInput").disabled = done; $("chatSend").disabled = done; $("termInput").disabled = done;
+    if (done) showResolve(true); else showChat();
+    renderChat(); renderTerm(); tick();
+  }
+  function renderAll() { renderQueue(); renderTicket(); renderStats(); }
+  function tick() {
+    const t = st();
+    let secs = 0;
+    if (t.startedAt) secs = Math.floor(((t.result && t.result.at) || Date.now()) - t.startedAt) / 1000 | 0;
+    const mm = String(Math.floor(secs / 60)).padStart(2, "0"), ss = String(secs % 60).padStart(2, "0");
+    $("tSla").textContent = (t.status === "done" ? "Closed in " : t.startedAt ? "Working " : "Waiting ") + mm + ":" + ss;
+  }
+  setInterval(tick, 1000);
+
+  function showChat() { $("chatView").style.display = "contents"; $("resolveView").hidden = true; }
+  function showResolve(withGrade) {
+    $("chatView").style.display = "none"; $("resolveView").hidden = false;
+    const t = st();
+    $("resolveForm").hidden = !!withGrade;
+    $("grade").hidden = !withGrade;
+    if (withGrade && t.result) renderGrade(t.result);
+  }
+
+  /* ---------- AI ---------- */
+  let samplePromise = (window.claude && window.claude.use) ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
+  let aiOff = false;
+  function noteAi(msg) { $("aiNote").textContent = msg; }
+
+  function coworkerRules(s, t) {
+    return "You are role-playing " + s.name + ", who works in " + s.dept + " at Inland Valley Supply, a fictional company. You submitted a help desk ticket and a trainee help desk technician is now chatting with you. This is a training simulation.\n\n" +
+      "Personality: " + s.persona + ". You are NOT technical. You don't know what DNS, IP addresses, gateways, adapters, proxies or command prompts are, and you never use those words unless the technician used them first, and even then you're unsure.\n\n" +
+      "SECRET (never reveal, never hint at with technical words): the real cause is: " + s.cause + "\n\n" +
+      "Things you know and will share only when the technician asks something related (a good question gets a useful answer; a vague one gets a vague answer): " + s.facts + "\n\n" +
+      "Current status of the problem: " + (t.fixed ? "IT IS NOW FIXED. If the technician asks you to check, it works now and you are relieved." : "still broken. If asked to check, it still doesn't work.") + "\n" +
+      "Physical things you can do if the technician asks you to: " + (s.physical === "none" ? "restart apps, read what's on screen, look at lights. Nothing you do yourself fixes it." : s.physical + ". If the technician clearly asks you to do this, you do it and it fixes the problem.") + "\n\n" +
+      "Rules: reply like a real coworker in a work chat app: 1 to 3 short sentences. Stay in character. Don't solve it for them or suggest the cause. If they use jargon, be a little confused. If they are rude or dismissive, be a bit annoyed. If they're kind and explain things simply, warm up. If they ask you to type commands, say you'd rather they handle it from their end. If they say it's fixed, check and confirm honestly based on the current status.\n\n" +
+      "Reply with ONLY a JSON object: {\"reply\": \"your chat message\", \"physicalFix\": false}. Set physicalFix to true only if, in their latest message, the technician asked you to do the physical action that fixes the problem and you did it.";
+  }
+  function fallbackReply(s, t, text) {
+    const q = text.toLowerCase();
+    if (s.id === "cable" && /cable|plug|wire|jack/.test(q)) return { reply: "Oh! The blue cable was just lying on the floor behind the desk. I pushed it back into the wall, it clicked.", physicalFix: true };
+    if (s.id === "apipa" && /unplug|replug|dock/.test(q)) return { reply: "Okay, I unplugged the dock and plugged it back in. The triangle went away!", physicalFix: true };
+    if (/work(s|ing)? now|try (it )?again|check/.test(q)) return { reply: t.fixed ? "Yes! It's working now, thank you so much!" : "Just tried, still not working, sorry.", physicalFix: false };
+    if (/when|start|change|did you|anything|recent|install|happen/.test(q)) return { reply: s.facts.split(". ").slice(0, 2).join(". ") + ".", physicalFix: false };
+    return { reply: "Okay. What do you need me to do?", physicalFix: false };
+  }
+  async function sendChat(text) {
+    const s = scen(), t = st();
+    if (!t.startedAt) t.startedAt = Date.now();
+    if (t.status === "new") t.status = "wip";
+    t.chat.push({ who: "me", text });
+    renderChat(); renderQueue(); save();
+    const typing = document.createElement("div");
+    typing.className = "msg them typing";
+    typing.innerHTML = '<span class="from">' + esc(s.name) + '</span><div class="body">typing…</div>';
+    $("chat").appendChild(typing); $("chat").scrollTop = $("chat").scrollHeight;
+    $("chatSend").disabled = true;
+    let res = null;
+    const sample = aiOff ? null : await samplePromise;
+    if (sample) {
+      const turns = [{ role: "user", content: coworkerRules(s, t) + "\n\nThe conversation follows. The technician's messages are user turns." }];
+      t.chat.filter(m => m.who !== "sys").forEach((m, i) => {
+        if (i === 0 && m.who === "them") { turns.push({ role: "assistant", content: JSON.stringify({ reply: m.text, physicalFix: false }) }); return; }
+        turns.push({ role: m.who === "me" ? "user" : "assistant", content: m.who === "me" ? m.text : JSON.stringify({ reply: m.text, physicalFix: false }) });
+      });
+      // turns must start with user (instructions) and end with user (latest message)
+      try {
+        const r = await sample.json(turns, { modelTier: "quick", cache: false });
+        if (r && typeof r.reply === "string") res = { reply: r.reply, physicalFix: !!r.physicalFix };
+      } catch (e) {
+        if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(e && e.code)) { aiOff = true; noteAi("Claude isn't available here, so the coworker is running on simple scripted replies."); }
+        else if (e && e.code === "rate_limited") noteAi("Too many messages at once. Wait a moment, then send again.");
+      }
+    } else if (!aiOff) { aiOff = true; noteAi("Claude isn't available in this view, so the coworker is running on simple scripted replies."); }
+    if (!res) res = fallbackReply(s, t, text);
+    typing.remove();
+    if (res.physicalFix && (s.id === "cable" || s.id === "apipa")) t.fixed = true;
+    t.chat.push({ who: "them", text: res.reply });
+    $("chatSend").disabled = st().status === "done";
+    save(); renderChat();
+  }
+
+  async function grade(s, t, form) {
+    const sample = aiOff ? null : await samplePromise;
+    const base = { at: Date.now(), fixed: t.fixed, form };
+    if (sample) {
+      const prompt = "You are a help desk team lead reviewing a Tier 1 trainee's ticket in a training simulator. Grade fairly but kindly; this is a beginner building skills for their first help desk job.\n\n" +
+        "TICKET: " + s.inc + " from " + s.name + " (" + s.dept + "): " + s.subj + "\n" +
+        "ACTUAL ROOT CAUSE: " + s.cause + "\n" +
+        "WAS THE PROBLEM ACTUALLY FIXED IN THE SIMULATION: " + (t.fixed ? "yes" : "no") + "\n\n" +
+        "COMMANDS THE TRAINEE RAN, IN ORDER:\n" + (t.cmds.length ? t.cmds.map((c, i) => (i + 1) + ". " + c).join("\n") : "(none)") + "\n\n" +
+        "CHAT WITH THE USER:\n" + t.chat.filter(m => m.who !== "sys").map(m => (m.who === "me" ? "Tech: " : s.name.split(" ")[0] + ": ") + m.text).join("\n") + "\n\n" +
+        "TRAINEE'S ROOT CAUSE: " + form.cause + "\nTRAINEE'S WORK NOTES: " + form.steps + "\nTRAINEE'S MESSAGE TO THE USER: " + form.user + "\n\n" +
+        "Score each area 1-5: method (logical order, e.g. ipconfig then ping gateway then ping external IP then DNS; verifying the fix), communication (friendly, plain language, asked useful questions, kept the user informed), documentation (clear notes another tech could follow). Overall score 0-100: root cause correct and fixed is the biggest factor.\n\n" +
+        "Reply with ONLY JSON: {\"score\": 0-100, \"causeFound\": true|false, \"method\": 1-5, \"communication\": 1-5, \"documentation\": 1-5, \"strengths\": [\"...\"], \"improve\": [\"...\"], \"modelNote\": \"an example of excellent work notes for this ticket, 3-5 lines\"}. Keep strengths and improve to 2-3 short items each, written to the trainee as 'you'.";
+      try {
+        const r = await sample.json(prompt, { modelTier: "default", cache: false });
+        if (r && typeof r.score === "number") return Object.assign(base, { score: Math.max(0, Math.min(100, Math.round(r.score))), causeFound: !!r.causeFound, method: +r.method || 0, communication: +r.communication || 0, documentation: +r.documentation || 0, strengths: (r.strengths || []).map(String), improve: (r.improve || []).map(String), modelNote: String(r.modelNote || "") });
+      } catch (e) {
+        if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(e && e.code)) aiOff = true;
+      }
+    }
+    return Object.assign(base, { score: null, causeFound: null, selfCheck: true });
+  }
+
+  function renderGrade(r) {
+    const s = scen();
+    let h = "";
+    if (r.selfCheck) {
+      h += '<div class="score"><b>Self-check</b><span class="verdict ' + (r.fixed ? "ok" : "no") + '">' + (r.fixed ? "Problem fixed" : "Still broken") + '</span></div>';
+      h += '<p>Claude couldn\'t review this one, so compare your root cause with the real one below.</p>';
+    } else {
+      h += '<div class="score"><b>' + r.score + '</b><span class="label">/ 100</span><span class="verdict ' + (r.causeFound ? "ok" : "no") + '">' + (r.causeFound ? "Root cause found" : "Root cause missed") + '</span><span class="verdict ' + (r.fixed ? "ok" : "no") + '">' + (r.fixed ? "Fixed" : "Not fixed") + '</span></div>';
+      h += '<div class="bars">' + [["Method", r.method], ["Communication", r.communication], ["Documentation", r.documentation]].map(([k, v]) => '<span>' + k + '</span><span class="bar"><i style="width:' + (v / 5 * 100) + '%"></i></span><span>' + v + '/5</span>').join("") + '</div>';
+      if (r.strengths && r.strengths.length) h += '<h3>What you did well</h3><ul>' + r.strengths.map(x => '<li>' + esc(x) + '</li>').join("") + '</ul>';
+      if (r.improve && r.improve.length) h += '<h3>Try next time</h3><ul>' + r.improve.map(x => '<li>' + esc(x) + '</li>').join("") + '</ul>';
+    }
+    h += '<div class="reveal"><b>Actual cause:</b> ' + esc(s.cause) + '</div>';
+    if (r.modelNote) h += '<h3>Example work notes</h3><div class="model-note">' + esc(r.modelNote) + '</div>';
+    h += '<h3>Your submission</h3><div class="model-note">Root cause: ' + esc(r.form.cause) + '\n\nWork notes: ' + esc(r.form.steps) + '\n\nTo user: ' + esc(r.form.user) + '</div>';
+    h += '<div class="row"><button class="btn" type="button" data-act="retry">Try this ticket again</button>' + (nextOpen() ? '<button class="btn primary" type="button" data-act="next">Next ticket</button>' : '') + '</div>';
+    $("grade").innerHTML = h;
+  }
+  function nextOpen() { return SCEN.find(s => s.id !== cur && state[s.id].status !== "done"); }
+
+  /* ---------- events ---------- */
+  $("queue").addEventListener("click", e => {
+    const b = e.target.closest("[data-id]"); if (!b) return;
+    cur = b.dataset.id; state._cur = cur; save(); renderAll();
+  });
+  $("composer").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = $("chatInput").value.trim(); if (!v) return;
+    $("chatInput").value = ""; sendChat(v);
+  });
+  const hist = []; let hi = -1;
+  $("termForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = $("termInput").value; $("termInput").value = "";
+    if (!v.trim()) return;
+    hist.unshift(v); hi = -1;
+    exec(v);
+  });
+  $("termInput").addEventListener("keydown", e => {
+    if (e.key === "ArrowUp") { if (hi < hist.length - 1) { hi++; $("termInput").value = hist[hi]; } e.preventDefault(); }
+    if (e.key === "ArrowDown") { if (hi > 0) { hi--; $("termInput").value = hist[hi]; } else { hi = -1; $("termInput").value = ""; } e.preventDefault(); }
+  });
+  function exec(v) {
+    const t = st();
+    if (t.status === "done") return;
+    const r = run(v);
+    if (r === "clear") { save(); renderTerm(); return; }
+    t.term.push({ cls: "cmd", text: v });
+    if (r && r.text !== "") t.term.push(r);
+    if (t.term.length > 300) t.term = t.term.slice(-300);
+    save(); renderTerm(); renderQueue();
+  }
+  $("chips").addEventListener("click", e => {
+    const b = e.target.closest("[data-cmd]"); if (b) { exec(b.dataset.cmd); $("termInput").focus(); }
+  });
+  $("btnResolve").addEventListener("click", () => showResolve(false));
+  $("btnBack").addEventListener("click", showChat);
+  $("btnReset").addEventListener("click", () => {
+    const b = $("btnReset");
+    if (b.dataset.armed) { state[cur] = blank(scen()); delete b.dataset.armed; b.textContent = "Restart ticket"; save(); renderAll(); return; }
+    b.dataset.armed = "1"; b.textContent = "Click again to restart";
+    setTimeout(() => { if (b.dataset.armed) { delete b.dataset.armed; b.textContent = "Restart ticket"; } }, 3000);
+  });
+  $("resolveForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const s = scen(), t = st();
+    const form = { cause: $("fCause").value.trim(), steps: $("fSteps").value.trim(), user: $("fUser").value.trim() };
+    if (!t.startedAt) t.startedAt = Date.now();
+    const btn = $("btnSubmit"); btn.disabled = true; btn.textContent = "Team lead is reviewing…";
+    const r = await grade(s, t, form);
+    btn.disabled = false; btn.textContent = "Submit for review";
+    t.result = r; t.status = "done";
+    t.chat.push({ who: "sys", text: "Ticket resolved and submitted for review." });
+    ["fCause", "fSteps", "fUser"].forEach(id => $(id).value = "");
+    save(); renderAll();
+  });
+  $("grade").addEventListener("click", e => {
+    const a = e.target.closest("[data-act]"); if (!a) return;
+    if (a.dataset.act === "retry") { state[cur] = blank(scen()); }
+    if (a.dataset.act === "next") { const n = nextOpen(); if (n) cur = n.id; state._cur = cur; }
+    save(); renderAll();
+  });
+
+  renderAll();
+})();
+</script>
+
+</body></html>
